@@ -2,7 +2,8 @@
 #include <stdlib.h>
 #include <pthread.h>
 
-static volatile int THREAD_NUMBER = 3;
+
+static volatile int NUM_TREADS = 4;
 
 static volatile int A_rows = 4;
 static volatile int A_cols = 4;
@@ -18,13 +19,12 @@ struct args {
     float** RightMatrix;
     int LeftCols, RightCols;
     int whichRow;
+    int blockLength;
 };
 
 // pthread_barrier_t   barrier;
-
 //La dimensione della matrice risultante sarà uguale a: m ed y
 float **result;
-
 
 //Precondition:
 /*
@@ -34,7 +34,6 @@ float **result;
         LeftMatrix[1][3] && RightMatrix[3][8]
 */
 //Questi vettori, per vincolo moltiplicazione, hanno la stessa lunghezza!
-//3x3 --> v(1x3)  3x1
 void tRowColMultiplication(float * LeftMatrix, float ** RightMatrix, int howManyCols, int whichRow)
 {
     int dim = 3;
@@ -66,15 +65,18 @@ void *RowColMultiplication(void *input)
     int Row_Dim = ((struct args*)input)->LeftCols; //dimensione della riga => LeftCols
     int cols = ((struct args*)input)->RightCols;
     int row = ((struct args*)input)->whichRow;
-
+    int blockLength = ((struct args*)input)->blockLength;
 
     // printf("thread_no: %d\n", row);
 
     float buffer = 0;
 
+
+    // for (int m = 0; m < blockLength; m++)
+    // {
       for (int i = 0; i < cols; i++)
       {
-        //
+        
         for (int j = 0; j < Row_Dim; j++)
         {
             // printf("%f * %f =", ((struct args*)input)->LeftMatrix[row][j], ((struct args*)input)->RightMatrix[j][i]);
@@ -88,6 +90,8 @@ void *RowColMultiplication(void *input)
         buffer = 0;
         //  printf("\n");
       }
+    // }
+
 }
 
 
@@ -109,7 +113,7 @@ void prnt_matrix(float ** matrix,int m,int n)
 
 float ** create_matrix(int m, int n, float starter)
 {
-  float ** ma = calloc(m, sizeof(float*));
+  float ** ma = calloc(m, sizeof( float*));
 
   if (ma != NULL) {
     int i, j;
@@ -176,7 +180,7 @@ int main(int argc, char *argv[])
     }
 
 
-    pthread_t my_threads[THREAD_NUMBER];
+    pthread_t my_threads[NUM_TREADS];
     void * returnCode;
 
     int Tresult;
@@ -196,6 +200,8 @@ int main(int argc, char *argv[])
     printf("\n");
 
 
+
+
     /* Start the threads */
     for (int i = 0; i < A_rows; i++)
     {
@@ -208,24 +214,19 @@ int main(int argc, char *argv[])
         Matrixes->LeftCols = A_cols;
 
         // printf("%d\t", Matrixes->whichRow);
-
         Tresult = pthread_create(&my_threads[i], NULL, &RowColMultiplication, (void*)Matrixes);
     }
 
-      // pthread_barrier_wait (&barrier);
+
+    // pthread_barrier_wait (&barrier);
 
     /* Wait for the threads to end */
-    for (int i = 0; i < THREAD_NUMBER; i++)
+    for (int i = 0; i < A_rows; i++)
     {
        Tresult = pthread_join(my_threads[i], &returnCode);
     }
 
     //Da notare che la dimensione della matrice risultate è nota!
     printf("All threads terminated\n");
-    // for (int i = 0; i < 3; i++)
-    // {
-    //   RowColMultiplication(matrix[i], m1, 3, i);
-    // }
-
-     prnt_matrix(result, A_rows, B_cols);
+    prnt_matrix(result, A_rows, B_cols);
 }
