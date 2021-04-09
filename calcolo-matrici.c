@@ -10,12 +10,12 @@ static volatile int C_rows = 4;
 static volatile int C_cols = 4;
 
 
-void fill_matrix(int **matrix, int rows, int cols) {
+void fill_matrix(float **matrix, int rows, int cols) {
 
     int i, j;
     float a = 5.0;
 
-    matrix = malloc(rows * sizeof *matrix);
+   
     for (i=0; i<rows; i++){
         matrix[i] = malloc(cols * sizeof *matrix[i]);
     }
@@ -30,7 +30,7 @@ void fill_matrix(int **matrix, int rows, int cols) {
 
 }
 
-void print_matrix(int **matrix, int rows, int cols) {
+void print_matrix(float **matrix, int rows, int cols) {
     int i = 0;
     int j = 0;
 
@@ -47,7 +47,7 @@ void print_matrix(int **matrix, int rows, int cols) {
 
 int main(int argc, char *argv[])
 {
-    if(argc != 4) {
+    if(argc != 5) {
         printf("Invalid arguments, matrixes will have default sizes:\n");
         printf("\t- A(4x4)\n\t- B(4x4)\n\t- C(4x4)\n");
     }
@@ -64,18 +64,34 @@ int main(int argc, char *argv[])
     }
     
     srand((unsigned int)time(NULL));
+    
+    int i;
 
-    int **A;
-    int **B;
-    int **C;
+    float **A = (float **)malloc(A_rows * A_cols * sizeof(float));
+    for (i=0; i < A_rows; i++)
+         A[i] = (float *)malloc(A_cols * sizeof(float));
+
+    float **B = (float **)malloc(B_rows * B_cols * sizeof(float));
+    for (i=0; i < B_rows; i++)
+         B[i] = (float *)malloc(B_cols * sizeof(float));
+
+
+    float **C = (float **)malloc(C_rows * C_cols * sizeof(float));
+    for (i=0; i < C_rows; i++)
+         C[i] = (float *)malloc(C_cols * sizeof(float));
     
-    
+
     fill_matrix(A, A_rows, A_cols);
     fill_matrix(B, B_rows, B_cols);
     fill_matrix(C, C_rows, C_cols);
     
+    printf("A:\n");
     print_matrix(A, A_rows, A_cols);
+
+    printf("B:\n");
     print_matrix(B, B_rows, B_cols);
+
+    printf("C:\n");
     print_matrix(C, C_rows, C_cols);
 
     return 0;
