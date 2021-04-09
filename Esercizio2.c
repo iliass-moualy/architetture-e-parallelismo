@@ -20,8 +20,8 @@ typedef struct args {
     float** LeftMatrix;
     float** RightMatrix;
     int LeftCols, RightCols;
-    int whichRow;
-    int howManyRows;
+    // int whichRow;
+    // int howManyRows;
     int from, to;
 } Args;
 
@@ -34,6 +34,8 @@ Args Initialize_Args(float** LeftMatrix, float** RightMatrix,
    return (Args) {.LeftMatrix = LeftMatrix, .RightMatrix = RightMatrix, 
    .LeftCols = leftCols, .RightCols = rightCols, .from = from, .to = to};
 }
+
+
 
 
 // pthread_barrier_t   barrier;
@@ -84,7 +86,7 @@ void *RowColMultiplication(void *input)
     int from = ((struct args*)input)->from;
     int to = ((struct args*)input)->to;
 
-    // printf("from: %d to:%d\n", from, to);
+    printf("from: %d to:%d\n", from, to);
     float buffer = 0;
 
 
@@ -197,7 +199,7 @@ int main(int argc, char *argv[])
     }
 
 
-    pthread_t my_threads[2];
+    
     void * returnCode;
 
     int Tresult;
@@ -217,59 +219,55 @@ int main(int argc, char *argv[])
     printf("\n");
 
     bool isMultiple = true;
-    int howManyBlocks = 2; //voglio 2 blocchi
-    int offset = 0;
 
-    if((offset = A_rows % howManyBlocks) != 0)
+    int howManyBlocks = 3; //voglio 2 blocchi --> ad ogni blocco è associato un thread
+    pthread_t my_threads[howManyBlocks];
+
+    int thread_no = 0;     
+
+    if(A_rows % howManyBlocks != 0)
         isMultiple = false;
     
-    int BlockLength = A_rows / howManyBlocks; //dimensione dei blocchi
-    int thread_no = 0;
+    int BlockLength = A_rows / howManyBlocks; //dimensione dei 
+
+      if(BlockLength == 0){
+        printf("Too many blocks!");
+        exit(-10);
+      }
+
+
+
     int from = 0, to = 0;
     //in questo caso si lavora con 4 threads
 
 
+    int countBlock = 0;
+
+    if(!isMultiple){
+      --howManyBlocks;
+      ++BlockLength;
+    }  
+
+    int i = 0;
     /* Start the threads */
-    for (int i = 0; i < A_rows; i++)
+    for (i = 0; i < A_rows && countBlock < howManyBlocks; i++)
     {
-
-      if(!isMultiple && i + 1 == offset ){
-        /* Dichiaro struct di elementi */
-        struct args *Matrixes = (struct args*)malloc(sizeof(struct args));
-        *Matrixes = Initialize_Args(A,B, A_cols, B_cols, i+1 - offset, i+1);
-        // Matrixes->LeftMatrix  = A;
-        // Matrixes->RightMatrix = B;
-        // Matrixes->RightCols = B_cols;
-        // Matrixes->LeftCols = A_cols;
-
-
-        // Matrixes->to   = i+1;
-        // Matrixes->from = i+1 - offset; 
-        // printf("%d\t", Matrixes->whichRow);
-        Tresult = pthread_create(&my_threads[thread_no++], NULL, &RowColMultiplication, (void*)Matrixes);
-        isMultiple = true;
-      }
-      else if((i+1)%BlockLength == 0 && isMultiple){
-        /* Dichiaro struct di elementi */
+      if((i+1) % BlockLength == 0){
         struct args *Matrixes = (struct args*)malloc(sizeof(struct args));
         *Matrixes = Initialize_Args(A,B, A_cols, B_cols, i+1 - BlockLength, i+1);
-        // Matrixes->LeftMatrix  = A;
-        // Matrixes->RightMatrix = B;
-        // Matrixes->RightCols = B_cols;
-        // Matrixes->LeftCols = A_cols;
-
-        // Matrixes->to   = i+1;
-        // Matrixes->from = i+1 - BlockLength; 
-        // printf("to: %d  from: %d\t", Matrixes->from, Matrixes->to );
-        Tresult = pthread_create(&my_threads[thread_no++], NULL, &RowColMultiplication, (void*)Matrixes);
-      }
-
-
+         Tresult = pthread_create(&my_threads[thread_no++], NULL, &RowColMultiplication, (void*)Matrixes);
+        ++countBlock;
+      }          
     }
 
-
-    // pthread_barrier_wait (&barrier);
-
+    //a questo punto mi manca solo l'ultimo blocco da aggiungere
+    if(!isMultiple){
+      struct args *Matrixes = (struct args*)malloc(sizeof(struct args));
+      *Matrixes = Initialize_Args(A,B, A_cols, B_cols, i , A_rows);
+       Tresult = pthread_create(&my_threads[thread_no++], NULL, &RowColMultiplication, (void*)Matrixes);
+    } 
+      
+    
     /* Wait for the threads to end */
     for (int i = 0; i < thread_no; i++)
     {
@@ -279,4 +277,5 @@ int main(int argc, char *argv[])
     //Da notare che la dimensione della matrice risultate è nota!
     printf("All %d threads terminated\n", thread_no);
     prnt_matrix(result, A_rows, B_cols);
+
 }
