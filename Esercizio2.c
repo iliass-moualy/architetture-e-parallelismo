@@ -179,7 +179,7 @@ int main(int argc, char *argv[])
     void * returnCode;
 
     int Tresult;
-    float ** A, **B, **C;
+    float **A, **B, **C;
 
     A = create_matrix( A_rows, A_cols, 1 );
     B = create_matrix( B_rows, B_cols, 5 );
