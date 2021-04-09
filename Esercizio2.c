@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
-#define THREAD_NUMBER
+
+static volatile int THREAD_NUMBER = 3;
 
 static volatile int A_rows = 4;
 static volatile int A_cols = 4;
@@ -175,7 +176,7 @@ int main(int argc, char *argv[])
     }
 
 
-    pthread_t my_threads[3];
+    pthread_t my_threads[THREAD_NUMBER];
     void * returnCode;
 
     int Tresult;
@@ -214,7 +215,7 @@ int main(int argc, char *argv[])
       // pthread_barrier_wait (&barrier);
 
     /* Wait for the threads to end */
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < THREAD_NUMBER; i++)
     {
        Tresult = pthread_join(my_threads[i], &returnCode);
     }
