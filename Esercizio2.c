@@ -2,17 +2,20 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <stdbool.h>
-
+#include <time.h>
 
 pthread_barrier_t   barrier; // the barrier synchronization object
 // static volatile int NUM_TREADS = 4;
 
-static volatile int A_rows = 5;
-static volatile int A_cols = 6;
-static volatile int B_rows = 6;
-static volatile int B_cols = 2;
-static volatile int C_rows = 5;
-static volatile int C_cols = 5;
+static volatile int MAX_THREADS = 8;
+
+
+static volatile int A_rows = 250;
+static volatile int A_cols = 250;
+static volatile int B_rows = 250;
+static volatile int B_cols = 250;
+static volatile int C_rows = 250;
+static volatile int C_cols = 250;
 
 typedef struct args {
     float** LeftMatrix;
@@ -137,57 +140,23 @@ void free_matrix(float ** matrix, int m, int n)
     free(matrix);
 }
 
-int main(int argc, char *argv[])
-{
-
-    if(argc != 5) {
-        printf("Invalid arguments, matrixes will have default sizes:\n");
-        printf("\t- A(%dx%d)\n\t- B(%dx%d)\n\t- C(%dx%d)\n", A_rows, A_cols, B_rows, B_cols, C_rows, C_cols);
-    }
-    else{
-        A_rows = atoi(argv[1]);
-        A_cols = atoi(argv[2]);
-        B_rows = atoi(argv[2]);
-        B_cols = atoi(argv[3]);
-        C_rows = atoi(argv[3]);
-        C_cols = atoi(argv[4]);
-
-        printf("Matrixes sizes:\n");
-        printf("\t- A(%dx%d)\n\t- B(%dx%d)\n\t- C(%dx%d)\n", A_rows, A_cols, B_rows, B_cols, C_rows, C_cols);
-    }
-    
-    int Tresult;
-
+void triple_matrix_mul(float **A, float **B, float **C, int threads_number){
     time_t  now;
-    char    buf [27];
-
-    float **A, **B, **C;
-    int thread_no = 0;    
-
-
     struct timespec start, finish;
     double elapsed;
+    int thread_no = 0;    
+    int Tresult;
 
-
-    A = create_matrix( A_rows, A_cols, 1 );
-    B = create_matrix( B_rows, B_cols, 5 );
-    C = create_matrix( C_rows, C_cols, 9 );
-
-    float **result;
-    result = create_matrix( A_rows, B_cols, 1 );
-
-
-    printf("A = \n");
-    prnt_matrix(A, A_rows, A_cols);
-    printf("\nB =\n");
-    prnt_matrix(B, B_rows, B_cols);
-    printf("\n");
 
     bool isMultiple = true;
-    int howManyBlocks = 1; //voglio howManyBlocks blocchi --> ad ogni blocco è associato un thread
+    int howManyBlocks = threads_number; //voglio howManyBlocks blocchi --> ad ogni blocco è associato un thread
 
     pthread_barrier_init (&barrier, NULL, howManyBlocks + 1); //dico alla barriera quanti thread dovrà fermare prima di proseguire
     pthread_t my_threads[howManyBlocks];
+
+
+    float **result;
+    result = create_matrix( A_rows, B_cols, 1 );
 
 
     if(A_rows % howManyBlocks != 0)
@@ -208,7 +177,7 @@ int main(int argc, char *argv[])
     }  
 
     int i = 0;
-    double howManyRounds = 1000;
+    double howManyRounds = 100;
 
 for (int p = 0; p<howManyRounds; p++){
     clock_gettime(CLOCK_MONOTONIC, &start);
@@ -281,7 +250,56 @@ for (int p = 0; p<howManyRounds; p++){
     // printf("\nAll threads terminated in: %f\n", elapsed);
   }    
 
-  printf("\n All %d thread terminated (%f rounds) in: %f\n", howManyBlocks, howManyRounds, elapsed/howManyRounds);
+  printf("\n All %d thread terminated (%f rounds) in: %f\n", threads_number, howManyRounds, elapsed/howManyRounds);
+
+}
+
+int main(int argc, char *argv[])
+{
+
+    if(argc != 5) {
+        printf("Invalid arguments, matrixes will have default sizes:\n");
+        printf("\t- A(%dx%d)\n\t- B(%dx%d)\n\t- C(%dx%d)\n", A_rows, A_cols, B_rows, B_cols, C_rows, C_cols);
+    }
+    else{
+        A_rows = atoi(argv[1]);
+        A_cols = atoi(argv[2]);
+        B_rows = atoi(argv[2]);
+        B_cols = atoi(argv[3]);
+        C_rows = atoi(argv[3]);
+        C_cols = atoi(argv[4]);
+
+        printf("Matrixes sizes:\n");
+        printf("\t- A(%dx%d)\n\t- B(%dx%d)\n\t- C(%dx%d)\n", A_rows, A_cols, B_rows, B_cols, C_rows, C_cols);
+    }
+      
+
+    float **A, **B, **C;
+   
+
+
+    A = create_matrix( A_rows, A_cols, 1 );
+    B = create_matrix( B_rows, B_cols, 5 );
+    C = create_matrix( C_rows, C_cols, 9 );
+
+   
+/* 
+    printf("A = \n");
+    prnt_matrix(A, A_rows, A_cols);
+    printf("\nB =\n");
+    prnt_matrix(B, B_rows, B_cols);
+    printf("\n"); */
+
+    int i = 0;
+    for(i= 1; i <= MAX_THREADS; ++i){
+      printf("Performing matrix multiplication with %d threads:\n", i);
+      triple_matrix_mul(A,B,C, i);
+      printf("\n\n\n");
+      printf("------------------------------------------------------------------------------------------\n");
+    }
+
+
+
 }
 
 
