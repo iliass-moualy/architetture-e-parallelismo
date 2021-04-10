@@ -140,13 +140,13 @@ void free_matrix(float ** matrix, int m, int n)
     free(matrix);
 }
 
-void triple_matrix_mul(float **A, float **B, float **C, int threads_number){
+float** triple_matrix_mul(float **A, float **B, float **C, int threads_number){
     time_t  now;
     struct timespec start, finish;
     double elapsed;
     int thread_no = 0;    
     int Tresult;
-
+    float** FinalResult;
 
     bool isMultiple = true;
     int howManyBlocks = threads_number; //voglio howManyBlocks blocchi --> ad ogni blocco è associato un thread
@@ -211,7 +211,7 @@ for (int p = 0; p<howManyRounds; p++){
     // Sincronizzazione tramite barriera
     // printf("Last waiting...\n");
     pthread_barrier_wait (&barrier);
-    float ** FinalResult = create_matrix(C_rows, B_cols, 0);
+    FinalResult = create_matrix(C_rows, B_cols, 0);
     countBlock = 0;
     thread_no = 0;
 
@@ -251,6 +251,36 @@ for (int p = 0; p<howManyRounds; p++){
   }    
 
   printf("\n All %d thread terminated (%f rounds) in: %f\n", threads_number, howManyRounds, elapsed/howManyRounds);
+  return FinalResult;
+}
+
+bool equals(float** A, float** B, int rows, int cols){
+  
+  for(int i=0; i<rows; i++)
+  {
+        for(int j=0; j<cols; j++)
+        {
+      if(A[i][j] != B[i][j])
+      {
+        return false;
+      }
+        }
+    }
+    
+  return true;
+}
+
+void fill_matrix(float **matrix, int rows, int cols) {
+
+    int i, j;
+    float a = 5.0;
+
+    matrix = malloc(rows * sizeof *matrix);
+
+    for (i=0; i<rows; i++){
+        matrix[i] = malloc(cols * sizeof *matrix[i]);
+    }
+@@ -30,7 +30,7 @@ void fill_matrix(int **matrix, int rows, int cols) {
 
 }
 
@@ -290,10 +320,21 @@ int main(int argc, char *argv[])
     prnt_matrix(B, B_rows, B_cols);
     printf("\n"); */
 
+    float **expected;
+    float **current;
     int i = 0;
     for(i= 1; i <= MAX_THREADS; ++i){
       printf("Performing matrix multiplication with %d threads:\n", i);
-      triple_matrix_mul(A,B,C, i);
+      current = triple_matrix_mul(A,B,C, i);
+      if(i == 1)
+        expected = current;
+      else{
+        if(!equals(expected, current, C_rows, B_cols)){
+          printf("Result got is not what was expected!\n");
+          exit(-1);
+        }
+        
+      }
       printf("\n\n\n");
       printf("------------------------------------------------------------------------------------------\n");
     }
