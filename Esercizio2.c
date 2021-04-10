@@ -235,7 +235,7 @@ int main(int argc, char *argv[])
        Tresult = pthread_create(&my_threads[thread_no++], NULL, &RowColMultiplication, (void*)Matrixes);
     } 
 
-    
+    printf("\n");
     prnt_matrix(result, A_rows, B_cols);
     //C * (A * B)
     float ** FinalResult = create_matrix(C_rows, B_cols, 0);
@@ -249,6 +249,7 @@ int main(int argc, char *argv[])
         struct args *Matrixes = (struct args*)malloc(sizeof(struct args));
         *Matrixes = Initialize_Args(C,result, FinalResult,C_cols, B_cols, i+1 - BlockLength, i+1);
          Tresult = pthread_create(&my_threads[thread_no++], NULL, &RowColMultiplication, (void*)Matrixes);
+         printf("asddas");
         ++countBlock;
       }          
     }
@@ -268,7 +269,7 @@ int main(int argc, char *argv[])
     // }
 
     //Da notare che la dimensione della matrice risultate è nota!
-    
+    printf("\n\n");
     prnt_matrix(FinalResult, C_rows, B_cols);
     printf("\nAll %d threads terminated\n", thread_no);
     // prnt_matrix(finalResult, C_rows,B_cols);
