@@ -193,6 +193,8 @@ int main(int argc, char *argv[])
   int rows_left = 0;
   int is_multiple = true;
   
+  printf("Decomponing matrix A...\n");
+
   if(A_rows <= MAX_BLOCKS){
     blocks_number = A_rows;
     blocks_size = 1;
@@ -220,7 +222,7 @@ int main(int argc, char *argv[])
   float **A, **B, **C;
 
   A = create_matrix( A_rows, A_cols, 1 );
-  B = create_matrix( B_rows, B_cols, 5 );
+  B = create_matrix( B_rows, B_cols, 1 );
   C = create_matrix( C_rows, C_cols, 9 );
 
   
@@ -233,17 +235,24 @@ int main(int argc, char *argv[])
 
   result = create_matrix( A_rows, B_cols, 1 );
 
+  printf("Assigning threads...\n");
 
   for(i = 0; i < blocks_number; ++i){
-    if(i == rows_left + 1)
-      k = 0;
-    if(i == rows_left + 2)
-      prev = 0;
+    if(i == 0)
+        prev = 0;
+    else 
+        prev = 1;
+
+   if(rows_left == 0)
+    k = 0;
+
     struct args *Matrixes = (struct args*)malloc(sizeof(struct args));
-    *Matrixes = Initialize_Args(A,B, A_cols, B_cols, i * blocks_size , (i+1) * blocks_size - 1 + k);
+    *Matrixes = Initialize_Args(A,B, A_cols, B_cols, i * blocks_size + prev, (i+1) * blocks_size - 1 + k);
     pthread_create(&my_threads[i++], NULL, &RowColMultiplication, (void*)Matrixes);
+    --rows_left;
   }
 
+  printf("Result matrix:\n");
 
   prnt_matrix(result, A_rows, B_cols);
 
