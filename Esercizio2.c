@@ -11,11 +11,8 @@ static volatile int A_rows = 5;
 static volatile int A_cols = 6;
 static volatile int B_rows = 6;
 static volatile int B_cols = 2;
-static volatile int C_rows = 4;
+static volatile int C_rows = 5;
 static volatile int C_cols = 5;
-
-
-
 
 typedef struct args {
     float** LeftMatrix;
@@ -24,7 +21,6 @@ typedef struct args {
     int LeftCols, RightCols;
     int from, to; //block_dim
 } Args;
-
 
 
 Args Initialize_Args(float** LeftMatrix, float** RightMatrix, float ** result,
@@ -39,18 +35,9 @@ Args Initialize_Args(float** LeftMatrix, float** RightMatrix, float ** result,
 pthread_barrier_t   barrier;
 //La dimensione della matrice risultante sarà uguale a: m ed y
 
-//Precondition:
-/*
-    TestCases:
-        LeftMatrix[3][3] && RightMatrix[3][1] --> testando...
-        LeftMatrix[3][3] && RightMatrix[3][8]
-        LeftMatrix[1][3] && RightMatrix[3][8]
-*/
-//Questi vettori, per vincolo moltiplicazione, hanno la stessa lunghezza!
-
 void *RowColMultiplication(void *input)
 {
-    //  printf("entering..");
+    
 
     int Row_Dim = ((struct args*)input)->LeftCols; //dimensione della riga => LeftCols
     int cols = ((struct args*)input)->RightCols;
@@ -59,7 +46,7 @@ void *RowColMultiplication(void *input)
     int from = ((struct args*)input)->from;
     int to = ((struct args*)input)->to;
 
-    printf("from: %d to:%d\n", from, to);
+    // printf("from: %d to:%d\n", from, to);
     float buffer = 0;
 
 
@@ -83,9 +70,8 @@ void *RowColMultiplication(void *input)
         //  printf("\n");
       }
     }
+    // printf("waiting..\n");
     pthread_barrier_wait (&barrier);
-
-  //  printf("Waiting...\n");
 }
 
 
@@ -96,7 +82,7 @@ void prnt_matrix(float ** matrix,int m,int n)
     {
         for(int j=0;j<n;j++)
         {
-            printf("%f ",matrix[i][j]);
+            printf(" %f ",matrix[i][j]);
         }
         printf("\n");
     }
@@ -170,10 +156,18 @@ int main(int argc, char *argv[])
         printf("\t- A(%dx%d)\n\t- B(%dx%d)\n\t- C(%dx%d)\n", A_rows, A_cols, B_rows, B_cols, C_rows, C_cols);
     }
     
-    void * returnCode;
     int Tresult;
+
+    time_t  now;
+    char    buf [27];
+
     float **A, **B, **C;
-    int thread_no = 0;     
+    int thread_no = 0;    
+
+
+    struct timespec start, finish;
+    double elapsed;
+
 
     A = create_matrix( A_rows, A_cols, 1 );
     B = create_matrix( B_rows, B_cols, 5 );
@@ -183,14 +177,14 @@ int main(int argc, char *argv[])
     result = create_matrix( A_rows, B_cols, 1 );
 
 
-    // prnt_matrix(result, A_rows, B_cols);
+    printf("A = \n");
     prnt_matrix(A, A_rows, A_cols);
-    printf("\n");
+    printf("\nB =\n");
     prnt_matrix(B, B_rows, B_cols);
     printf("\n");
 
     bool isMultiple = true;
-    int howManyBlocks = 5; //voglio howManyBlocks blocchi --> ad ogni blocco è associato un thread
+    int howManyBlocks = 1; //voglio howManyBlocks blocchi --> ad ogni blocco è associato un thread
 
     pthread_barrier_init (&barrier, NULL, howManyBlocks + 1); //dico alla barriera quanti thread dovrà fermare prima di proseguire
     pthread_t my_threads[howManyBlocks];
@@ -206,8 +200,6 @@ int main(int argc, char *argv[])
         exit(-10);
       }
 
-
-    //in questo caso si lavora con 4 threads
     int countBlock = 0;
 
     if(!isMultiple){
@@ -216,7 +208,10 @@ int main(int argc, char *argv[])
     }  
 
     int i = 0;
-    
+    double howManyRounds = 1000;
+
+for (int p = 0; p<howManyRounds; p++){
+    clock_gettime(CLOCK_MONOTONIC, &start);
     /* Start the threads */
     for (i = 0; i < A_rows && countBlock < howManyBlocks; i++)
     {
@@ -235,21 +230,30 @@ int main(int argc, char *argv[])
        Tresult = pthread_create(&my_threads[thread_no++], NULL, &RowColMultiplication, (void*)Matrixes);
     } 
 
-    printf("\n");
-    prnt_matrix(result, A_rows, B_cols);
-    //C * (A * B)
-    float ** FinalResult = create_matrix(C_rows, B_cols, 0);
+    // printf("A x B = \n");
+    // prnt_matrix(result, A_rows, B_cols);
+    // printf("\n");
+
+    // printf("C = \n");
+    // prnt_matrix(C, C_rows, C_cols);
+    // printf("\n");
+
 
     // Sincronizzazione tramite barriera
+    // printf("Last waiting...\n");
     pthread_barrier_wait (&barrier);
+    float ** FinalResult = create_matrix(C_rows, B_cols, 0);
+    countBlock = 0;
+    thread_no = 0;
 
-        for (i = 0; i < C_rows && countBlock < howManyBlocks; i++)
+    //Da notare che se C_rows < A_Rows, allora è possibile che ci siano meno blocchi e di conseguenza, non tutti i thread parteciperanno alla seconda moltiplicazione
+    for (i = 0; i < C_rows && countBlock < howManyBlocks; i++)
     {
+
       if((i+1) % BlockLength == 0){
         struct args *Matrixes = (struct args*)malloc(sizeof(struct args));
         *Matrixes = Initialize_Args(C,result, FinalResult,C_cols, B_cols, i+1 - BlockLength, i+1);
          Tresult = pthread_create(&my_threads[thread_no++], NULL, &RowColMultiplication, (void*)Matrixes);
-         printf("asddas");
         ++countBlock;
       }          
     }
@@ -261,19 +265,23 @@ int main(int argc, char *argv[])
        Tresult = pthread_create(&my_threads[thread_no++], NULL, &RowColMultiplication, (void*)Matrixes);
     } 
 
-    
-    // /* Wait for the threads to end */
-    // for (int i = 0; i < thread_no; i++)
-    // {
-    //    Tresult = pthread_join(my_threads[i], &returnCode);
-    // }
-
     //Da notare che la dimensione della matrice risultate è nota!
-    printf("\n\n");
-    prnt_matrix(FinalResult, C_rows, B_cols);
-    printf("\nAll %d threads terminated\n", thread_no);
-    // prnt_matrix(finalResult, C_rows,B_cols);
+    // printf("C x (A x B ) = \n");
+    // prnt_matrix(FinalResult, C_rows, B_cols);
 
+
+
+    pthread_barrier_wait (&barrier);
+    clock_gettime(CLOCK_MONOTONIC, &finish);
+
+    elapsed += (finish.tv_sec - start.tv_sec);
+    elapsed += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
+    countBlock = 0;
+    thread_no = 0;
+    // printf("\nAll threads terminated in: %f\n", elapsed);
+  }    
+
+  printf("\n All %d thread terminated (%f rounds) in: %f\n", howManyBlocks, howManyRounds, elapsed/howManyRounds);
 }
 
 
