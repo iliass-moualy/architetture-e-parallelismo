@@ -41,7 +41,6 @@ pthread_barrier_t   barrier;
 void *RowColMultiplication(void *input)
 {
     
-
     int Row_Dim = ((struct args*)input)->LeftCols; //dimensione della riga => LeftCols
     int cols = ((struct args*)input)->RightCols;
     float** result = ((struct args*)input)->Result;
@@ -75,7 +74,6 @@ void *RowColMultiplication(void *input)
     // printf("Row_multiplication ended..\n");
     pthread_barrier_wait (&barrier);
 }
-
 
 void prnt_matrix(float ** matrix,int m,int n)
 {
@@ -172,14 +170,14 @@ float** triple_matrix_mul(float **A, float **B, float **C, int threads_number){
 
     int countBlock = 0;
 
-    // if(!isMultiple){
-    //   --howManyBlocks;
-    //   ++BlockLength;
-    // }  
-
     int i = 0;
     int howManyRounds = 100;
 
+
+/* La suddivisione avviene tramite l'utilizzo dello scarto:
+      - se il numero di blocchi è pari al numero di righe della matrice a destra, allora significa che si ha già la dimensione giusta di righe per ogni blocco
+      - altrimenti, distribuisco lo scarto tra i blocchi dati A_rows % howManyBlocks ed infine, l'ultimo blocco sarà della dimensione desiderata (Block_Length)  
+*/
 for (int p = 0; p<howManyRounds; p++){
     clock_gettime(CLOCK_MONOTONIC, &start);
     /* Start the threads */
@@ -211,21 +209,9 @@ for (int p = 0; p<howManyRounds; p++){
             *Matrixes = Initialize_Args(A,B, result, A_cols, B_cols, i+1 - BlockLength, i+1);
             Tresult = pthread_create(&my_threads[thread_no++], NULL, &RowColMultiplication, (void*)Matrixes);
           }      
-        // struct args *Matrixes = (struct args*)malloc(sizeof(struct args));
-        // *Matrixes = Initialize_Args(A,B, result, A_cols, B_cols,  from , to);
-        // Tresult = pthread_create(&my_threads[thread_no++], NULL, &RowColMultiplication, (void*)Matrixes);
+
       }
     }
-     
-
-    //a questo punto mi manca solo l'ultimo blocco da aggiungere
-    // if(!isMultiple){
-    //   struct args *Matrixes = (struct args*)malloc(sizeof(struct args));
-    //   *Matrixes = Initialize_Args(A,B, result, A_cols, B_cols,  i , A_rows);
-    //    Tresult = pthread_create(&my_threads[thread_no++], NULL, &RowColMultiplication, (void*)Matrixes);
-    //   printf("thread_no total = %d\n", thread_no);
-    // } 
-
     //  printf("A x B = \n");
     // prnt_matrix(result, A_rows, B_cols);
     // printf("\n");
@@ -236,9 +222,7 @@ for (int p = 0; p<howManyRounds; p++){
 
 
     // Sincronizzazione tramite barriera
-    // printf("Last waiting...\n");
     pthread_barrier_wait (&barrier);
-    // printf("Next round...\n");
     FinalResult = create_matrix(C_rows, B_cols, 0);
     countBlock = 0;
     thread_no = 0;
@@ -247,14 +231,6 @@ for (int p = 0; p<howManyRounds; p++){
     //Da notare che se C_rows < A_Rows, allora è possibile che ci siano meno blocchi e di conseguenza, non tutti i thread parteciperanno alla seconda moltiplicazione
     for (i = 0; i < C_rows; i++)
     {
-
-      // if((i+1) % BlockLength == 0){
-      //   struct args *Matrixes = (struct args*)malloc(sizeof(struct args));
-      //   *Matrixes = Initialize_Args(C,result, FinalResult,C_cols, B_cols, i+1 - BlockLength, i+1);
-      //    Tresult = pthread_create(&my_threads[thread_no++], NULL, &RowColMultiplication, (void*)Matrixes);
-      //   ++countBlock;
-      // }         
-
 
       if(countBlock < maximumBlocksToAdd){
         if((i+1) % (BlockLength + 1)  == 0){
@@ -281,29 +257,12 @@ for (int p = 0; p<howManyRounds; p++){
             *Matrixes = Initialize_Args(C,result, FinalResult, C_cols, B_cols, from, to);
             Tresult = pthread_create(&my_threads[thread_no++], NULL, &RowColMultiplication, (void*)Matrixes);
           } 
-
-
-
-        // struct args *Matrixes = (struct args*)malloc(sizeof(struct args));
-
-        //   int from = i;
-        //   int to = i+1;
-        //   // printf("from: %d to:%d\n", from, to);
-
-        // *Matrixes = Initialize_Args(C,result, FinalResult,C_cols, B_cols,  from , to);
-        // Tresult = pthread_create(&my_threads[thread_no++], NULL, &RowColMultiplication, (void*)Matrixes);
       }
     }
     //a questo punto mi manca solo l'ultimo blocco da aggiungere
-    // if(!isMultiple){
-
-    //   struct args *Matrixes = (struct args*)malloc(sizeof(struct args));
-    //   *Matrixes = Initialize_Args(C,result, FinalResult, C_cols, B_cols, i , C_rows);
-    //    Tresult = pthread_create(&my_threads[thread_no++], NULL, &RowColMultiplication, (void*)Matrixes);
-    // } 
 
     //Da notare che la dimensione della matrice risultate è nota!
-    //  printf("C x (A x B ) = \n");
+    // printf("C x (A x B ) = \n");
     // prnt_matrix(FinalResult, C_rows, B_cols);
 
 
@@ -358,14 +317,11 @@ int main(int argc, char *argv[])
         printf("\t- A(%dx%d)\n\t- B(%dx%d)\n\t- C(%dx%d)\n", A_rows, A_cols, B_rows, B_cols, C_rows, C_cols);
     }
       
-
     float **A, **B, **C;
-   
-
 
     A = create_matrix( A_rows, A_cols, 0 );
-    B = create_matrix( B_rows, B_cols, 0 );
-    C = create_matrix( C_rows, C_cols, 0 );
+    B = create_matrix( B_rows, B_cols, 5 );
+    C = create_matrix( C_rows, C_cols, 8 );
 
    
 /* 
@@ -396,8 +352,6 @@ int main(int argc, char *argv[])
       printf("\n\n\n");
       printf("------------------------------------------------------------------------------------------\n");
     }
-
-
 
 }
 
