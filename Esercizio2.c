@@ -270,8 +270,8 @@ int main(int argc, char *argv[])
         A_cols = atoi(argv[2]);
         B_rows = atoi(argv[2]);
         B_cols = atoi(argv[3]);
-        C_rows = atoi(argv[3]);
-        C_cols = atoi(argv[4]);
+        C_rows = atoi(argv[4]);
+        C_cols = atoi(argv[1]);
 
         printf("Matrixes sizes:\n");
         printf("\t- A(%dx%d)\n\t- B(%dx%d)\n\t- C(%dx%d)\n", A_rows, A_cols, B_rows, B_cols, C_rows, C_cols);
@@ -306,5 +306,9 @@ int main(int argc, char *argv[])
     }
 
 
-
+    free_matrix(A, A_rows, A_cols);
+    free_matrix(B, B_rows, B_cols);
+    free_matrix(C, C_rows, C_cols);
+    free_matrix(current, C_rows, B_cols);
+    free_matrix(expected, C_rows, B_cols);
 }
