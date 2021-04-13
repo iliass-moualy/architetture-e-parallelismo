@@ -271,7 +271,7 @@ int main(int argc, char *argv[])
         B_rows = atoi(argv[2]);
         B_cols = atoi(argv[3]);
         C_rows = atoi(argv[4]);
-        C_cols = atoi(argv[1]);
+        C_cols = atoi(argv[2]);
 
         printf("Matrixes sizes:\n");
         printf("\t- A(%dx%d)\n\t- B(%dx%d)\n\t- C(%dx%d)\n", A_rows, A_cols, B_rows, B_cols, C_rows, C_cols);
