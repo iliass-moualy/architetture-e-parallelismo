@@ -91,7 +91,8 @@ void prnt_matrix(float ** matrix,int m,int n)
 float ** create_matrix(int m, int n, float starter)
 {
   float ** ma = calloc(m, sizeof( float*));
-
+  float a = 5.0;
+  
   if (ma != NULL) {
     int i, j;
 
@@ -99,10 +100,9 @@ float ** create_matrix(int m, int n, float starter)
       if ((ma[i] = malloc(n*sizeof(float))) == NULL)
         return NULL;
       for (j = 0; j != n; ++j) {
-        ma[i][j] = i*n + j + starter;
+        ma[i][j] = ((float)rand()/(float)(RAND_MAX)) * a;
       }
     }
-
   }
   return ma;
 }
