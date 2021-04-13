@@ -91,10 +91,11 @@ void prnt_matrix(float ** matrix,int m,int n)
     }
 }
 
-float ** create_matrix(int m, int n, float starter)
+float ** create_matrix(int m, int n)
 {
   float ** ma = calloc(m, sizeof( float*));
-
+  float a = 5.0;
+ 
   if (ma != NULL) {
     int i, j;
 
@@ -102,7 +103,7 @@ float ** create_matrix(int m, int n, float starter)
       if ((ma[i] = malloc(n*sizeof(float))) == NULL)
         return NULL;
       for (j = 0; j != n; ++j) {
-        ma[i][j] = i*n + j + starter;
+        ma[i][j] = ((float)rand()/(float)(RAND_MAX)) * a;
       }
     }
 
@@ -111,21 +112,7 @@ float ** create_matrix(int m, int n, float starter)
 }
 
 
-void obtn_matrix(float *** matrix, float * m, float * n)
-{
-    printf("Please enter the row number: ");
-    fflush(stdin);
-    scanf("%f",m);
 
-    printf("Please enter the column number: ");
-    fflush(stdin);
-    scanf("%f",n);
-
-    printf("Please enter starter number: ");
-    fflush(stdin);
-
-    *matrix=create_matrix(*m,*n, 0);
-}
 
 void free_matrix(float ** matrix, int m, int n)
 {
@@ -156,7 +143,7 @@ float** triple_matrix_mul(float **A, float **B, float **C, int threads_number){
 
 
     float **result;
-    result = create_matrix( A_rows, B_cols, 1 );
+    result = create_matrix( A_rows, B_cols);
 
 
     if(A_rows % howManyBlocks != 0)
@@ -179,19 +166,19 @@ float** triple_matrix_mul(float **A, float **B, float **C, int threads_number){
     int i = 0;
     double howManyRounds = 100;
 
-for (int p = 0; p<howManyRounds; p++){
-    clock_gettime(CLOCK_MONOTONIC, &start);
-    /* Start the threads */
-    for (i = 0; i < A_rows && countBlock < howManyBlocks; i++)
-    {
-      if((i+1) % BlockLength == 0){
-        struct args *Matrixes = (struct args*)malloc(sizeof(struct args));
-        *Matrixes = Initialize_Args(A,B, result, A_cols, B_cols, i+1 - BlockLength, i+1);
-         Tresult = pthread_create(&my_threads[thread_no++], NULL, &RowColMultiplication, (void*)Matrixes);
-        ++countBlock;
-      }          
-    }
-
+    for (int p = 0; p<howManyRounds; p++){
+        clock_gettime(CLOCK_MONOTONIC, &start);
+        /* Start the threads */
+        for (i = 0; i < A_rows && countBlock < howManyBlocks; i++)
+        {
+          if((i+1) % BlockLength == 0){
+            struct args *Matrixes = (struct args*)malloc(sizeof(struct args));
+            *Matrixes = Initialize_Args(A,B, result, A_cols, B_cols, i+1 - BlockLength, i+1);
+            Tresult = pthread_create(&my_threads[thread_no++], NULL, &RowColMultiplication, (void*)Matrixes);
+            ++countBlock;
+          }          
+        }
+    
     //a questo punto mi manca solo l'ultimo blocco da aggiungere
     if(!isMultiple){
       struct args *Matrixes = (struct args*)malloc(sizeof(struct args));
@@ -211,7 +198,7 @@ for (int p = 0; p<howManyRounds; p++){
     // Sincronizzazione tramite barriera
     // printf("Last waiting...\n");
     pthread_barrier_wait (&barrier);
-    FinalResult = create_matrix(C_rows, B_cols, 0);
+    FinalResult = create_matrix(C_rows, B_cols);
     countBlock = 0;
     thread_no = 0;
 
@@ -270,23 +257,10 @@ bool equals(float** A, float** B, int rows, int cols){
   return true;
 }
 
-void fill_matrix(float **matrix, int rows, int cols) {
 
-    int i, j;
-    float a = 5.0;
-
-    matrix = malloc(rows * sizeof *matrix);
-
-    for (i=0; i<rows; i++){
-        matrix[i] = malloc(cols * sizeof *matrix[i]);
-    }
-@@ -30,7 +30,7 @@ void fill_matrix(int **matrix, int rows, int cols) {
-
-}
 
 int main(int argc, char *argv[])
 {
-
     if(argc != 5) {
         printf("Invalid arguments, matrixes will have default sizes:\n");
         printf("\t- A(%dx%d)\n\t- B(%dx%d)\n\t- C(%dx%d)\n", A_rows, A_cols, B_rows, B_cols, C_rows, C_cols);
@@ -305,24 +279,17 @@ int main(int argc, char *argv[])
       
 
     float **A, **B, **C;
-   
+    srand((unsigned int)time(NULL));
+    
+    A = create_matrix( A_rows, A_cols);
+    B = create_matrix( B_rows, B_cols);
+    C = create_matrix( C_rows, C_cols);
 
-
-    A = create_matrix( A_rows, A_cols, 1 );
-    B = create_matrix( B_rows, B_cols, 5 );
-    C = create_matrix( C_rows, C_cols, 9 );
-
-   
-/* 
-    printf("A = \n");
-    prnt_matrix(A, A_rows, A_cols);
-    printf("\nB =\n");
-    prnt_matrix(B, B_rows, B_cols);
-    printf("\n"); */
 
     float **expected;
     float **current;
     int i = 0;
+
     for(i= 1; i <= MAX_THREADS; ++i){
       printf("Performing matrix multiplication with %d threads:\n", i);
       current = triple_matrix_mul(A,B,C, i);
@@ -332,8 +299,7 @@ int main(int argc, char *argv[])
         if(!equals(expected, current, C_rows, B_cols)){
           printf("Result got is not what was expected!\n");
           exit(-1);
-        }
-        
+        } 
       }
       printf("\n\n\n");
       printf("------------------------------------------------------------------------------------------\n");
@@ -342,6 +308,3 @@ int main(int argc, char *argv[])
 
 
 }
-
-
-
