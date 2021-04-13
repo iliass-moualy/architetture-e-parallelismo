@@ -82,7 +82,7 @@ void prnt_matrix(float ** matrix,int m,int n)
     }
 }
 
-float ** create_matrix(int m, int n, float starter)
+float ** create_matrix(int m, int n)
 {
   float ** ma = calloc(m, sizeof( float*));
     
@@ -129,7 +129,7 @@ float** triple_matrix_mul(float **A, float **B, float **C, int threads_number){
 
 
     float **result;
-    result = create_matrix( A_rows, B_cols, 1 );
+    result = create_matrix( A_rows, B_cols);
 
     int maximumBlocksToAdd = A_rows % howManyBlocks;
 
@@ -188,7 +188,7 @@ for (int p = 0; p<howManyRounds; p++){
     // printf("Last waiting...\n");
     pthread_barrier_wait (&barrier);
     // printf("Next round...\n");
-    FinalResult = create_matrix(C_rows, B_cols, 0);
+    FinalResult = create_matrix(C_rows, B_cols);
     countBlock = 0;
     thread_no = 0;
 
@@ -279,16 +279,16 @@ int main(int argc, char *argv[])
    
     srand((unsigned int)time(NULL));
 
-    A = create_matrix( A_rows, A_cols, 0 );
-    B = create_matrix( B_rows, B_cols, 0 );
-    C = create_matrix( C_rows, C_cols, 0 );
+    A = create_matrix( A_rows, A_cols);
+    B = create_matrix( B_rows, B_cols);
+    C = create_matrix( C_rows, C_cols);
 
 
     float **expected;
     float **current;
     int i = 0;
 
-    // current = triple_matrix_mul(A,B,C, 6);
+  
 
     for(i= 1; i <= MAX_THREADS; ++i){
       printf("Performing matrix multiplication with %d threads:\n", i);
