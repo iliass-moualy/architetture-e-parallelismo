@@ -5,10 +5,8 @@
 #include <time.h>
 
 pthread_barrier_t   barrier; // the barrier synchronization object
-// static volatile int NUM_TREADS = 4;
 
 static volatile int MAX_THREADS = 8;
-
 
 static volatile int A_rows = 250;
 static volatile int A_cols = 250;
@@ -40,8 +38,6 @@ pthread_barrier_t   barrier;
 
 void *RowColMultiplication(void *input)
 {
-    
-
     int Row_Dim = ((struct args*)input)->LeftCols; //dimensione della riga => LeftCols
     int cols = ((struct args*)input)->RightCols;
     float** result = ((struct args*)input)->Result;
@@ -50,7 +46,6 @@ void *RowColMultiplication(void *input)
     int to = ((struct args*)input)->to;
 
     float buffer = 0;
-
 
     for (int m = from; m < to; m++)
     {
@@ -85,7 +80,6 @@ void prnt_matrix(float ** matrix,int m,int n)
 float ** create_matrix(int m, int n)
 {
   float ** ma = calloc(m, sizeof( float*));
-    
   float a = 5.0;
 
   if (ma != NULL) {
@@ -140,7 +134,7 @@ float** triple_matrix_mul(float **A, float **B, float **C, int threads_number){
 
     if(BlockLength == 0){
       printf("Too many blocks!");
-      exit(-10);
+      exit(1);
     }
 
     int countBlock = 0; 
@@ -148,79 +142,59 @@ float** triple_matrix_mul(float **A, float **B, float **C, int threads_number){
     int i = 0;
     int howManyRounds = 100;
 
-for (int p = 0; p<howManyRounds; p++){
-    clock_gettime(CLOCK_MONOTONIC, &start);
-    /* Start the threads */
-    for (i = 0; i < A_rows; i++){
-      if(countBlock < maximumBlocksToAdd){
-        if((i+1) % (BlockLength + 1)  == 0){
-          struct args *Matrixes = (struct args*)malloc(sizeof(struct args));
-          
-          int from = (i+1) - (BlockLength + 1);
-          int to = i+1;
-          // printf("from: %d to:%d\n", from, to);
-
-          *Matrixes = Initialize_Args(A,B, result, A_cols, B_cols, from, to);
-          Tresult = pthread_create(&my_threads[thread_no++], NULL, &RowColMultiplication, (void*)Matrixes);
-          ++countBlock;
+    for (int p = 0; p<howManyRounds; p++){
+        clock_gettime(CLOCK_MONOTONIC, &start);
+        /* Start the threads */
+        for (i = 0; i < A_rows; i++){
+          if(countBlock < maximumBlocksToAdd){
+            if((i+1) % (BlockLength + 1)  == 0){
+              struct args *Matrixes = (struct args*)malloc(sizeof(struct args));
+              int from = (i+1) - (BlockLength + 1);
+              int to = i+1;
+              *Matrixes = Initialize_Args(A,B, result, A_cols, B_cols, from, to);
+              Tresult = pthread_create(&my_threads[thread_no++], NULL, &RowColMultiplication, (void*)Matrixes);
+              ++countBlock;
+            }
+          }
+          else{
+            if((i+1-maximumBlocksToAdd) % BlockLength == 0){
+              struct args *Matrixes = (struct args*)malloc(sizeof(struct args));
+              int from = i+1 - BlockLength;
+              int to = i+1;
+              *Matrixes = Initialize_Args(A,B, result, A_cols, B_cols, i+1 - BlockLength, i+1);
+              Tresult = pthread_create(&my_threads[thread_no++], NULL, &RowColMultiplication, (void*)Matrixes);
+              }      
+          }
         }
-      }
-      else{
-
-          if((i+1-maximumBlocksToAdd) % BlockLength == 0){
-            struct args *Matrixes = (struct args*)malloc(sizeof(struct args));
-
-            int from = i+1 - BlockLength;
-            int to = i+1;
-            // printf("from: %d to:%d\n", from, to);
-
-            *Matrixes = Initialize_Args(A,B, result, A_cols, B_cols, i+1 - BlockLength, i+1);
-            Tresult = pthread_create(&my_threads[thread_no++], NULL, &RowColMultiplication, (void*)Matrixes);
-          }      
-        // struct args *Matrixes = (struct args*)malloc(sizeof(struct args));
-        // *Matrixes = Initialize_Args(A,B, result, A_cols, B_cols,  from , to);
-        // Tresult = pthread_create(&my_threads[thread_no++], NULL, &RowColMultiplication, (void*)Matrixes);
-      }
-    }
      
 
     // Sincronizzazione tramite barriera
-    // printf("Last waiting...\n");
     pthread_barrier_wait (&barrier);
-    // printf("Next round...\n");
+    
     FinalResult = create_matrix(C_rows, B_cols);
     countBlock = 0;
     thread_no = 0;
 
 
-    //Da notare che se C_rows < A_Rows, allora è possibile che ci siano meno blocchi e di conseguenza, non tutti i thread parteciperanno alla seconda moltiplicazione
-    for (i = 0; i < C_rows; i++)
-    {
+    for (i = 0; i < C_rows; i++){
       if(countBlock < maximumBlocksToAdd){
         if((i+1) % (BlockLength + 1)  == 0){
           struct args *Matrixes = (struct args*)malloc(sizeof(struct args));
-          
           int from = (i+1) - (BlockLength + 1);
           int to = i+1;
-          // printf("from: %d to:%d\n", from, to);
-
           *Matrixes = Initialize_Args(C,result, FinalResult, C_cols, B_cols, from, to);
           Tresult = pthread_create(&my_threads[thread_no++], NULL, &RowColMultiplication, (void*)Matrixes);
           ++countBlock;
         }
       }
       else{
-
        if((i+1-maximumBlocksToAdd) % BlockLength == 0){
-            struct args *Matrixes = (struct args*)malloc(sizeof(struct args));
-
-            int from = i+1 - BlockLength;
-            int to = i+1;
-            // printf("from: %d to:%d\n", from, to);
-
-            *Matrixes = Initialize_Args(C,result, FinalResult, C_cols, B_cols, from, to);
-            Tresult = pthread_create(&my_threads[thread_no++], NULL, &RowColMultiplication, (void*)Matrixes);
-          } 
+          struct args *Matrixes = (struct args*)malloc(sizeof(struct args));
+          int from = i+1 - BlockLength;
+          int to = i+1;
+          *Matrixes = Initialize_Args(C,result, FinalResult, C_cols, B_cols, from, to);
+          Tresult = pthread_create(&my_threads[thread_no++], NULL, &RowColMultiplication, (void*)Matrixes);
+        } 
       }
     }
 
@@ -238,19 +212,10 @@ for (int p = 0; p<howManyRounds; p++){
 }
 
 bool equals(float** A, float** B, int rows, int cols){
-  
   for(int i=0; i<rows; i++)
-  {
-        for(int j=0; j<cols; j++)
-        {
-      if(A[i][j] != B[i][j])
-      {
-        printf("A[%d][%d]: %f\tB[%d][%d]: %f", i,j, A[i][j],i,j,B[i][j]);
-        return false;
-      }
-        }
-    }
-    
+      for(int j=0; j<cols; j++)
+        if(A[i][j] != B[i][j])
+          return false;    
   return true;
 }
 
@@ -267,8 +232,8 @@ int main(int argc, char *argv[])
         A_cols = atoi(argv[2]);
         B_rows = atoi(argv[2]);
         B_cols = atoi(argv[3]);
-        C_rows = atoi(argv[3]);
-        C_cols = atoi(argv[4]);
+        C_rows = atoi(argv[4]);
+        C_cols = atoi(argv[1]);
 
         printf("Matrixes sizes:\n");
         printf("\t- A(%dx%d)\n\t- B(%dx%d)\n\t- C(%dx%d)\n", A_rows, A_cols, B_rows, B_cols, C_rows, C_cols);
@@ -283,12 +248,9 @@ int main(int argc, char *argv[])
     B = create_matrix( B_rows, B_cols);
     C = create_matrix( C_rows, C_cols);
 
-
     float **expected;
     float **current;
     int i = 0;
-
-  
 
     for(i= 1; i <= MAX_THREADS; ++i){
       printf("Performing matrix multiplication with %d threads:\n", i);
@@ -310,7 +272,7 @@ int main(int argc, char *argv[])
     free_matrix(A,A_rows,A_cols);
     free_matrix(B,B_rows,B_cols);
     free_matrix(C,C_rows,C_cols);
-    
+
     free_matrix(expected, A_rows, B_cols);
     free_matrix(current, C_rows, B_cols);
 
